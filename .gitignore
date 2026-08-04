@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.lock
+*.log
+# personal desktop screenshots / scratch -- never publish
+shot*.png
+overlay.png

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Penguin Walk
+Comment=Tux crosses the bottom of the screen every now and then
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
