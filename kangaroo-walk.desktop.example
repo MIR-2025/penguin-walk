@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Kangaroo Hop
+Comment=A kangaroo hops across the bottom of the screen every now and then
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-kangaroo --speed 200 --frame-ms 80
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
