@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Gorilla Walk
+Comment=A gorilla knuckle-walks across the bottom of the screen every now and then
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-gorilla --speed 130 --frame-ms 110
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
