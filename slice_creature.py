@@ -59,6 +59,12 @@ CREATURES = {
             ('kangaroo.png', 4, 4, 'walk'),            # green-screen hop cycle (16 frames)
         ],
     },
+    'lion': {
+        'target_h': 150,
+        'sheets': [
+            ('lion.png', 4, 4, 'walk'),                # green-screen prowl cycle (16 frames)
+        ],
+    },
 }
 
 

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Lion Walk
+Comment=A lion prowls across the bottom of the screen every now and then
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-lion --speed 150 --frame-ms 90
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
