@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Elephant Walk
+Comment=A baby elephant ambles across the bottom of the screen every now and then
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-elephant --speed 100 --frame-ms 130
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

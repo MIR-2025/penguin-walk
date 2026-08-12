@@ -17,14 +17,29 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GLib
 import cairo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FRAMES_DIR = os.path.join(HERE, 'frames')
+
+
+def _arg(flag, default=None):
+    if flag in sys.argv:
+        i = sys.argv.index(flag)
+        if i + 1 < len(sys.argv):
+            return sys.argv[i + 1]
+    return default
+
+
+# --frames <dir> runs the same engine on any creature (default: tux in ./frames).
+# A relative dir resolves under HERE; the lock is derived so creatures don't collide.
+_frames = _arg('--frames', 'frames')
+FRAMES_DIR = _frames if os.path.isabs(_frames) else os.path.join(HERE, _frames)
+_base = os.path.basename(FRAMES_DIR.rstrip('/'))
+LOCK_NAME = '.lock' if _base == 'frames' else '.lock-' + _base
 
 # ---- tunables -------------------------------------------------------------
 MIN_GAP     = 15 * 60     # min seconds between crossings
 MAX_GAP     = 45 * 60     # max seconds between crossings
 FIRST_DELAY = 8           # a hello-crossing this many seconds after start
-SPEED       = 200         # pixels per second (steady the whole pass)
-FRAME_MS    = 95          # ms per animation frame
+SPEED       = int(_arg('--speed', 200))     # px/s horizontal; --speed <n> overrides per creature
+FRAME_MS    = int(_arg('--frame-ms', 95))   # ms per animation frame; --frame-ms <n> overrides
 TICK_MS     = 20          # movement tick
 MARGIN      = 4           # px above the work-area bottom
 MONITOR     = 'largest'   # 'largest' = your 4K; or an exact geometry like '3840x2160'
@@ -247,7 +262,7 @@ class Penguin(Gtk.Window):
 
 def main():
     if not ONCE:
-        lock = open(os.path.join(HERE, '.lock'), 'w')
+        lock = open(os.path.join(HERE, LOCK_NAME), 'w')
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError:

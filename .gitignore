@@ -1,6 +1,6 @@
 __pycache__/
 *.pyc
-.lock
+.lock*
 *.log
 # personal desktop screenshots / scratch -- never publish
 shot*.png
