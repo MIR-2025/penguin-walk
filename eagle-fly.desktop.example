@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Eagle Fly
+Comment=A bald eagle flaps across the screen at altitude every now and then
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-eagle --fly 900 --speed 170 --frame-ms 85
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

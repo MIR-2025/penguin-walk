@@ -40,6 +40,7 @@ MAX_GAP     = 45 * 60     # max seconds between crossings
 FIRST_DELAY = 8           # a hello-crossing this many seconds after start
 SPEED       = int(_arg('--speed', 200))     # px/s horizontal; --speed <n> overrides per creature
 FRAME_MS    = int(_arg('--frame-ms', 95))   # ms per animation frame; --frame-ms <n> overrides
+FLY         = int(_arg('--fly', 0))         # >0: cruise ~this many px above the floor (a flyer)
 TICK_MS     = 20          # movement tick
 MARGIN      = 4           # px above the work-area bottom
 MONITOR     = 'largest'   # 'largest' = your 4K; or an exact geometry like '3840x2160'
@@ -57,6 +58,7 @@ DEFAULT_META = {'lift': None, 'loops': 1}
 
 ONCE = '--once' in sys.argv
 MAX_LIFT = max([m.get('height', 0) for m in META.values()] + [0])
+MAX_ALT = int(FLY * 1.35)   # tallest random cruise altitude -- sizes the overlay strip
 
 
 def load_sets():
@@ -120,7 +122,7 @@ class Penguin(Gtk.Window):
         self.tricks = [n for n in sorted(self.sets) if n != self.base]
         self.fw = self.sets[self.base]['right'][0].get_width()
         self.ph = self.sets[self.base]['right'][0].get_height()
-        self.strip_h = self.ph + MAX_LIFT + MARGIN
+        self.strip_h = self.ph + (MAX_ALT if FLY else MAX_LIFT) + MARGIN
 
         self.set_decorated(False)
         self.set_skip_taskbar_hint(True)
@@ -198,6 +200,7 @@ class Penguin(Gtk.Window):
         self.resize(self.strip_w, self.strip_h)
         self.move(self.strip_x, self.strip_y)
         self.dir = random.choice((1, -1))
+        self._alt = random.randint(int(FLY * 0.6), MAX_ALT) if FLY else 0   # this flight's height
         self._walk_run = 0
         self._did_trick = False
         if self.tricks and (ONCE or random.random() < TRICK_PROB):
@@ -241,8 +244,11 @@ class Penguin(Gtk.Window):
             return False
         cr.set_operator(cairo.OPERATOR_OVER)
         pb = self.seg[self.seg_i % len(self.seg)]
-        t = self.seg_i / max(1, self.seg_len - 1)
-        lift = lift_at(self.seg_lift, self.seg_h, t)
+        if FLY:
+            lift = self._alt                       # cruise this crossing's altitude, flapping
+        else:
+            t = self.seg_i / max(1, self.seg_len - 1)
+            lift = lift_at(self.seg_lift, self.seg_h, t)
         y = self.strip_h - pb.get_height() - lift
         Gdk.cairo_set_source_pixbuf(cr, pb, self.x, y)
         cr.paint()
