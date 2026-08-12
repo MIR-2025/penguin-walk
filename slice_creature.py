@@ -43,7 +43,8 @@ CREATURES = {
     'gorilla': {
         'target_h': 150,
         'sheets': [
-            ('gorilla.png', 4, 4, 'walk'),             # green-screen knuckle-walk (16 frames)
+            ('gorilla.png',        4, 4, 'walk'),      # green-screen knuckle-walk (16 frames)
+            ('gorilla-tricks.png', 4, 4, 'tumble'),    # roll on the back / tumble / recover
         ],
     },
 }
