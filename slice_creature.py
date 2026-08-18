@@ -61,10 +61,21 @@ CREATURES = {
         'target_h': 150,
         'sheets': [('lion.png', 4, 4, 'walk')],
     },
+    'trex': {
+        'target_h': 170,                               # a big lizard -- stands taller than the mammals
+        'flip': True,                                  # source faces LEFT (unlike the mammal sheets)
+        'sheets': [('trex.png', 3, 4, 'walk')],        # 3x4 = 12-frame running cycle
+    },
     'eagle': {
         'target_h': 150,
         'align': 'air',                                # a flyer -- run the daemon with --fly
         'sheets': [('eagle.png', 4, 4, 'walk')],       # flapping flight cycle
+    },
+    'pterodactyl': {
+        'target_h': 150,
+        'align': 'air',                                # a flyer -- run the daemon with --fly
+        'flip': True,                                  # source faces LEFT
+        'sheets': [('pterodactyl.png', 3, 4, 'walk')], # 3x4 = 12-frame flap/glide cycle
     },
 }
 
@@ -114,6 +125,7 @@ def area(f):
 def build(name, cfg):
     target_h = cfg['target_h']
     align = cfg.get('align', 'bottom')
+    flip = cfg.get('flip', False)                      # mirror to face right (daemon travels 'right' set forward)
     sets = {}
     for fn, rows, cols, sname in cfg['sheets']:
         p = os.path.join(INC, fn)
@@ -191,6 +203,8 @@ def build(name, cfg):
             img = Image.fromarray(c, 'RGBA').resize((sw, sh), Image.LANCZOS)
             canvas = Image.new('RGBA', (uni_w, uni_h), (0, 0, 0, 0))
             canvas.alpha_composite(img, place[sname][i])
+            if flip:
+                canvas = canvas.transpose(Image.FLIP_LEFT_RIGHT)
             canvas.save(os.path.join(outdir, '%02d.png' % (i + 1)))
             imgs.append(canvas)
         pad = 6
