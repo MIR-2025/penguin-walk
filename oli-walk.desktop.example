@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Oli Walk
+Comment=Oli the dog bounds across the bottom of the screen every now and then
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-oli --speed 220 --frame-ms 70
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

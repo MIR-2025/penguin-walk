@@ -77,15 +77,26 @@ CREATURES = {
         'flip': True,                                  # source faces LEFT
         'sheets': [('pterodactyl.png', 3, 4, 'walk')], # 3x4 = 12-frame flap/glide cycle
     },
+    'oli': {
+        'target_h': 130,                               # a dog -- smaller than the big cats
+        'flip': True,                                  # source faces LEFT
+        'solid': True,                                 # no green on the dog -> clear enclosed gaps + specks
+        'sheets': [('oli.png', 3, 4, 'walk')],         # 3x4 = 12-frame run cycle
+    },
 }
 
 
-def key_cell(cell):
-    """Remove the background from ONE raw RGBA cell without holing the creature."""
+def key_cell(cell, solid_key=False):
+    """Remove the background from ONE raw RGBA cell. Border-safe by default: only green
+    touching the cell edge is dropped, so green spill ON the creature isn't holed. solid_key
+    removes ALL green and keeps only the largest blob -- for a pure-green single subject with
+    no green on it (a dog, a lizard), which also clears gaps enclosed by limbs + stray specks."""
     a = cell.copy()
     R, G, B = a[..., 0].astype(int), a[..., 1].astype(int), a[..., 2].astype(int)
     green = (G > 100) & (G - R > 25) & (G - B > 25)
-    if green.any():
+    if solid_key:
+        a[..., 3][green] = 0                          # remove ALL green, incl. the gaps between legs
+    elif green.any():
         lbl, _ = ndimage.label(green)
         border = set(lbl[0, :]) | set(lbl[-1, :]) | set(lbl[:, 0]) | set(lbl[:, -1])
         border.discard(0)
@@ -95,12 +106,17 @@ def key_cell(cell):
     a[..., 1][spill] = ((R[spill] + B[spill]) // 2).astype(a.dtype)
     sat = np.maximum(np.maximum(R, G), B) - np.minimum(np.minimum(R, G), B)
     a[..., 3][(sat > 100) & (a[..., 3] < 210)] = 0
-    solid = ndimage.binary_erosion(a[..., 3] > 40, iterations=1)
-    a[..., 3][~solid] = 0
+    eroded = ndimage.binary_erosion(a[..., 3] > 40, iterations=1)
+    a[..., 3][~eroded] = 0
+    if solid_key:                                     # drop detached key specks -- keep the largest blob
+        lbl2, n2 = ndimage.label(a[..., 3] > 40)
+        if n2 > 1:
+            sizes = ndimage.sum(np.ones_like(lbl2), lbl2, range(1, n2 + 1))
+            a[..., 3][lbl2 != int(np.argmax(sizes)) + 1] = 0
     return a
 
 
-def cells(path, rows, cols):
+def cells(path, rows, cols, solid_key=False):
     """Split into an even grid; key + tight-crop each non-empty cell. Returns (crop,
     bottom_in_cell) -- the cell row where content ends, used by ground alignment."""
     a = np.asarray(Image.open(path).convert('RGBA'))
@@ -109,7 +125,7 @@ def cells(path, rows, cols):
     out = []
     for r in range(rows):
         for c in range(cols):
-            k = key_cell(a[r * ch:(r + 1) * ch, c * cw:(c + 1) * cw])
+            k = key_cell(a[r * ch:(r + 1) * ch, c * cw:(c + 1) * cw], solid_key)
             ys, xs = np.where(k[..., 3] > 20)
             if len(xs) < 100:
                 continue
@@ -126,13 +142,14 @@ def build(name, cfg):
     target_h = cfg['target_h']
     align = cfg.get('align', 'bottom')
     flip = cfg.get('flip', False)                      # mirror to face right (daemon travels 'right' set forward)
+    solid_key = cfg.get('solid', False)                # remove ALL green + keep largest blob (no green on the subject)
     sets = {}
     for fn, rows, cols, sname in cfg['sheets']:
         p = os.path.join(INC, fn)
         if not os.path.exists(p):
             print('  missing', p)
             continue
-        fr = cells(p, rows, cols)
+        fr = cells(p, rows, cols, solid_key)
         if fr:
             sets[sname] = fr
             print('  %-8s %2d frames <- %s' % (sname, len(fr), fn))
