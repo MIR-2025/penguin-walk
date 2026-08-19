@@ -41,6 +41,7 @@ FIRST_DELAY = 8           # a hello-crossing this many seconds after start
 SPEED       = int(_arg('--speed', 200))     # px/s horizontal; --speed <n> overrides per creature
 FRAME_MS    = int(_arg('--frame-ms', 95))   # ms per animation frame; --frame-ms <n> overrides
 FLY         = int(_arg('--fly', 0))         # >0: cruise ~this many px above the floor (a flyer)
+FLOCK       = int(_arg('--flock', 1))       # >1: cross as a flock of up to N, each its own speed/altitude
 TICK_MS     = 20          # movement tick
 MARGIN      = 4           # px above the work-area bottom
 MONITOR     = 'largest'   # 'largest' = your 4K; or an exact geometry like '3840x2160'
@@ -150,6 +151,7 @@ class Penguin(Gtk.Window):
         self.seg_h = 0
         self.x = 0.0
         self.dir = 1
+        self.flock = []           # non-empty -> flock mode (list of independent flyers)
         self._frame_timer = None
 
         self.compute_geometry()
@@ -195,10 +197,8 @@ class Penguin(Gtk.Window):
         self.seg_len = len(self.seg) * m.get('loops', 1)
         self.seg_i = 0
 
-    def start_crossing(self):
-        self.compute_geometry()
-        self.resize(self.strip_w, self.strip_h)
-        self.move(self.strip_x, self.strip_y)
+    def setup_single(self):
+        self.flock = []
         self.dir = random.choice((1, -1))
         self._alt = random.randint(int(FLY * 0.6), MAX_ALT) if FLY else 0   # this flight's height
         self._walk_run = 0
@@ -211,6 +211,32 @@ class Penguin(Gtk.Window):
             self._trick_name = None
         self.x = -self.fw if self.dir > 0 else self.strip_w
         self.start_segment()
+
+    def setup_flock(self):
+        # A flock crosses together (one shared direction) but each bird gets its own speed,
+        # altitude, wing phase, and a staggered entry so they string out instead of overlapping.
+        d = random.choice((1, -1))
+        seg = self.sets[self.base]['right' if d > 0 else 'left']
+        self.flock = []
+        for _ in range(random.randint(2, FLOCK)):
+            lead = random.uniform(0, 900)          # stagger entry over ~900px -> a loose flock, not a column
+            self.flock.append({
+                'x': (-self.fw - lead) if d > 0 else (self.strip_w + lead),
+                'dir': d,
+                'speed': SPEED * random.uniform(0.65, 1.35),
+                'alt': random.randint(int(FLY * 0.5), MAX_ALT) if FLY else 0,
+                'seg': seg,
+                'seg_i': random.randint(0, len(seg) - 1),
+            })
+
+    def start_crossing(self):
+        self.compute_geometry()
+        self.resize(self.strip_w, self.strip_h)
+        self.move(self.strip_x, self.strip_y)
+        if FLOCK > 1:
+            self.setup_flock()
+        else:
+            self.setup_single()
         self.walking = True
         self.show_all()
         self.click_through()
@@ -221,6 +247,10 @@ class Penguin(Gtk.Window):
     def on_frame(self):
         if not self.walking:
             return False
+        if self.flock:
+            for f in self.flock:
+                f['seg_i'] += 1
+            return True
         self.seg_i += 1
         if self.seg_i >= self.seg_len:
             self.start_segment()
@@ -229,6 +259,16 @@ class Penguin(Gtk.Window):
     def tick(self):
         if not self.walking:
             return False
+        if self.flock:
+            for f in self.flock:
+                f['x'] += (f['speed'] * TICK_MS / 1000.0) * f['dir']
+            self.flock = [f for f in self.flock if not (
+                (f['dir'] > 0 and f['x'] > self.strip_w) or (f['dir'] < 0 and f['x'] < -self.fw))]
+            if not self.flock:
+                self.end_crossing()
+                return False
+            self.queue_draw()
+            return True
         self.x += (SPEED * TICK_MS / 1000.0) * self.dir
         if (self.dir > 0 and self.x > self.strip_w) or (self.dir < 0 and self.x < -self.fw):
             self.end_crossing()
@@ -243,6 +283,13 @@ class Penguin(Gtk.Window):
         if not self.walking:
             return False
         cr.set_operator(cairo.OPERATOR_OVER)
+        if self.flock:
+            for f in self.flock:
+                pb = f['seg'][f['seg_i'] % len(f['seg'])]
+                y = self.strip_h - pb.get_height() - f['alt']
+                Gdk.cairo_set_source_pixbuf(cr, pb, f['x'], y)
+                cr.paint()
+            return False
         pb = self.seg[self.seg_i % len(self.seg)]
         if FLY:
             lift = self._alt                       # cruise this crossing's altitude, flapping
