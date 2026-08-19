@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Beach Ball
+Comment=A beach ball rolls across the bottom of the screen every now and then
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-beachball --speed 190 --frame-ms 80
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

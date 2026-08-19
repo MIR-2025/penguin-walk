@@ -83,6 +83,11 @@ CREATURES = {
         'solid': True,                                 # no green on the dog -> clear enclosed gaps + specks
         'sheets': [('oli.png', 3, 4, 'walk')],         # 3x4 = 12-frame run cycle
     },
+    'beachball': {
+        'target_h': 120,                               # ball ~120px across
+        'prekeyed': True,                              # already-transparent sheet -> no chroma-key
+        'sheets': [('beachball.png', 3, 4, 'walk')],   # a clean rolling ball (panels rotate)
+    },
 }
 
 
@@ -116,16 +121,25 @@ def key_cell(cell, solid_key=False):
     return a
 
 
-def cells(path, rows, cols, solid_key=False):
-    """Split into an even grid; key + tight-crop each non-empty cell. Returns (crop,
-    bottom_in_cell) -- the cell row where content ends, used by ground alignment."""
+def cells(path, rows, cols, solid_key=False, prekeyed=False):
+    """Split into an even grid; key (unless prekeyed -- the sheet is already transparent) +
+    tight-crop each non-empty cell. Returns (crop, bottom_in_cell) -- the cell row where
+    content ends, used by ground alignment."""
     a = np.asarray(Image.open(path).convert('RGBA'))
     H, W = a.shape[0], a.shape[1]
     ch, cw = H // rows, W // cols
     out = []
     for r in range(rows):
         for c in range(cols):
-            k = key_cell(a[r * ch:(r + 1) * ch, c * cw:(c + 1) * cw], solid_key)
+            cell = a[r * ch:(r + 1) * ch, c * cw:(c + 1) * cw]
+            if prekeyed:
+                k = cell.copy()
+                lbl, nb = ndimage.label(k[..., 3] > 40)   # drop stray specks so the crop locks onto the subject,
+                if nb > 1:                                #   not an artifact -- otherwise re-centering makes it jitter
+                    sizes = ndimage.sum(np.ones_like(lbl), lbl, range(1, nb + 1))
+                    k[..., 3][lbl != int(np.argmax(sizes)) + 1] = 0
+            else:
+                k = key_cell(cell, solid_key)
             ys, xs = np.where(k[..., 3] > 20)
             if len(xs) < 100:
                 continue
@@ -143,13 +157,14 @@ def build(name, cfg):
     align = cfg.get('align', 'bottom')
     flip = cfg.get('flip', False)                      # mirror to face right (daemon travels 'right' set forward)
     solid_key = cfg.get('solid', False)                # remove ALL green + keep largest blob (no green on the subject)
+    prekeyed = cfg.get('prekeyed', False)              # sheet already transparent -> skip the chroma-key
     sets = {}
     for fn, rows, cols, sname in cfg['sheets']:
         p = os.path.join(INC, fn)
         if not os.path.exists(p):
             print('  missing', p)
             continue
-        fr = cells(p, rows, cols, solid_key)
+        fr = cells(p, rows, cols, solid_key, prekeyed)
         if fr:
             sets[sname] = fr
             print('  %-8s %2d frames <- %s' % (sname, len(fr), fn))
