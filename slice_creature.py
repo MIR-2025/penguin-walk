@@ -77,6 +77,12 @@ CREATURES = {
         'flip': True,                                  # source faces LEFT
         'sheets': [('pterodactyl.png', 3, 4, 'walk')], # 3x4 = 12-frame flap/glide cycle
     },
+    'seagull': {
+        'target_h': 130,                               # a gull -- mid-size flyer
+        'align': 'air',                                # a flyer -- run the daemon with --fly
+        'prekeyed': True,                              # already-transparent sheet (no keying; keeps black wingtips)
+        'sheets': [('seagull.png', 3, 4, 'walk')],     # 3x4 = 12-frame flap cycle; source faces RIGHT (no flip)
+    },
     'oli': {
         'target_h': 130,                               # a dog -- smaller than the big cats
         'flip': True,                                  # source faces LEFT
