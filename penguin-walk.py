@@ -60,6 +60,7 @@ DEFAULT_META = {'lift': None, 'loops': 1}
 ONCE = '--once' in sys.argv
 MAX_LIFT = max([m.get('height', 0) for m in META.values()] + [0])
 MAX_ALT = int(FLY * 1.35)   # tallest random cruise altitude -- sizes the overlay strip
+JL_ALT  = int(FLY * 1.9)    # a lone high-flyer's ceiling (Jonathan Livingston), well above the flock
 
 
 def load_sets():
@@ -123,7 +124,8 @@ class Penguin(Gtk.Window):
         self.tricks = [n for n in sorted(self.sets) if n != self.base]
         self.fw = self.sets[self.base]['right'][0].get_width()
         self.ph = self.sets[self.base]['right'][0].get_height()
-        self.strip_h = self.ph + (MAX_ALT if FLY else MAX_LIFT) + MARGIN
+        _ceiling = JL_ALT if (FLY and FLOCK > 1) else (MAX_ALT if FLY else MAX_LIFT)
+        self.strip_h = self.ph + _ceiling + MARGIN     # tall enough for a Jonathan-Livingston high-flyer
 
         self.set_decorated(False)
         self.set_skip_taskbar_hint(True)
@@ -217,16 +219,28 @@ class Penguin(Gtk.Window):
         # altitude, wing phase, and a staggered entry so they string out instead of overlapping.
         d = random.choice((1, -1))
         seg = self.sets[self.base]['right' if d > 0 else 'left']
+        jls_seg = [seg[0]] * 3 + [seg[-1]] * 3               # a lazy 2-pose soar (first + last frame, each held ~3 ticks)
+        n = random.randint(2, FLOCK)
+        high = random.randrange(n) if (FLY and random.random() < 0.33) else -1   # every ~3rd crossing, one breaks away
         self.flock = []
-        for _ in range(random.randint(2, FLOCK)):
-            lead = random.uniform(0, 900)          # stagger entry over ~900px -> a loose flock, not a column
+        for i in range(n):
+            if i == high:                                    # the Jonathan Livingston: higher, ~2x faster, soaring
+                alt = random.randint(int(FLY * 1.5), JL_ALT)
+                speed = SPEED * random.uniform(1.9, 2.5)
+                bseg = jls_seg
+                lead = random.uniform(0, 200)                # starts with the pack, then pulls up and away
+            else:
+                alt = random.randint(int(FLY * 0.5), MAX_ALT) if FLY else 0
+                speed = SPEED * random.uniform(0.65, 1.35)
+                bseg = seg
+                lead = random.uniform(0, 900)                # loose flock, staggered so it isn't a column
             self.flock.append({
                 'x': (-self.fw - lead) if d > 0 else (self.strip_w + lead),
                 'dir': d,
-                'speed': SPEED * random.uniform(0.65, 1.35),
-                'alt': random.randint(int(FLY * 0.5), MAX_ALT) if FLY else 0,
-                'seg': seg,
-                'seg_i': random.randint(0, len(seg) - 1),
+                'speed': speed,
+                'alt': alt,
+                'seg': bseg,
+                'seg_i': random.randint(0, len(bseg) - 1),
             })
 
     def start_crossing(self):

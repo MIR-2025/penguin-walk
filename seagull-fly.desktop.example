@@ -2,7 +2,7 @@
 Type=Application
 Name=Seagull Flock
 Comment=A flock of seagulls (2-9) glides across the screen at altitude every now and then
-Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-seagull --fly 850 --speed 160 --frame-ms 95 --flock 9
+Exec=python3 /home/YOU/penguin-walk/penguin-walk.py --frames frames-seagull --fly 850 --speed 320 --frame-ms 95 --flock 9
 Terminal=false
 X-GNOME-Autostart-enabled=true
 NoDisplay=true
